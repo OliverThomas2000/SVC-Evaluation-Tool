@@ -1,25 +1,26 @@
-import wave
+import scipy.io.wavfile as wav
 import numpy as np
-import matplotlib.pyplot as plt
+import python_speech_features as psf
 from sklearn.preprocessing import MinMaxScaler
+from scipy.signal import resample
 
 class MFCC:
-    def load_audio(file_path):
-        with wave.open(file_path, "rb") as wav:
-            audio_data = wav.readframes(wav.getnframes())
-            sample_rate = wav.getframerate()
-
-            audio_data = np.frombuffer(audio_data, dtype=np.int16)
-        return audio_data, sample_rate
 
     def __init__(self, file_path):
-        self.audio_data,self.sr = self.load_audio(file_path)
+
+        self.sr,self.audio_data = wav.read(file_path)
         self.mfccs = None
 
     def calculate(self):
-        _,_, mfccs = plt.specgram(self.audio_data, Fs=self.sr)
-        
-        return 
+        factor = 16_000 / self.sr
+        signal = resample(self.audio_data, int(self.audio_data.shape[0] * factor))
+        self.mfccs = psf.mfcc(
+            signal, 
+            samplerate=self.sr, 
+            nfft=1024,
+            numcep=30
+            )
+        return self.mfccs
 
 def mfcc_difference(mfcc1,mfcc2):
     scaler = MinMaxScaler()

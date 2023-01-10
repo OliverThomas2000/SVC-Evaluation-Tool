@@ -16,16 +16,18 @@ def upload_audio(canvas, ax):
         return
 
     # Load the audio data and extract the MFCCs
-    mfccs = MFCC(file_path).calculate()
+    mfcc_data = MFCC(file_path).calculate()
 
     # Clear the current plot and plot the MFCCs
-    ax.clear()
-    ax.plot(mfccs)
+    mfcc_data = mfcc_data / (np.max(np.abs(mfcc_data)) + 1e-8)
+
+    # Use the imshow function to display the MFCC data
+    ax.imshow(mfcc_data, origin='lower', extent=[-1, 1, -1, 1], cmap='jet',interpolation='nearest')
     canvas.draw()
 
 def calculate_difference():
-    mfcc1 = ax1.lines[0].getydata()
-    mfcc2 = ax2.lines[0].getydata()
+    mfcc1 = ax1.images[-1].get_array()
+    mfcc2 = ax2.images[-1].get_array()
 
     difference = mfcc_difference(mfcc1,mfcc2)
 
@@ -44,11 +46,11 @@ target_frame.grid(row=0,column=0,padx=50,pady=0)
 converted_frame = Frame(main_frame, width=450, height=400, bg='grey')
 converted_frame.grid(row=0,column=1,padx=50,pady=0)
 
-
-fig1 = plt.figure(figsize=(5,3))
+size = (5,5)
+fig1 = plt.figure(figsize=size)
 ax1 = fig1.add_subplot(111)
 
-fig2 = plt.figure(figsize=(5,3))
+fig2 = plt.figure(figsize=size)
 ax2 = fig2.add_subplot(111)
 
 target_canvas = FigureCanvasTkAgg(fig1, master=target_frame)
