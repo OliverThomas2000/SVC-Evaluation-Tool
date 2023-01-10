@@ -1,77 +1,82 @@
-from tkinter import *
+import tkinter as tk
 from tkinter import filedialog
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
 from MFCC import *
 
+class App:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("SVC Evaluation Tool")
+        self.root.config(bg='black')
 
-def upload_audio(canvas, ax):
-    # Create a file selection dialog
-    file_path = filedialog.askopenfilename(
-        filetypes=[
-        ("WAV file", ".wav")
-    ])
-    if not file_path:
-        return
+        self.main_frame = tk.Frame(self.root, width=1000, height=400, bg='white')
+        self.main_frame.grid(row=0, column=0, padx=20, pady=10)
 
-    # Load the audio data and extract the MFCCs
-    mfcc_data = MFCC(file_path).calculate()
+        self.target_frame = tk.Frame(self.main_frame, width=450, height=400, bg='grey')
+        self.target_frame.grid(row=0,column=0,padx=50,pady=0)
 
-    # Clear the current plot and plot the MFCCs
-    mfcc_data = mfcc_data / (np.max(np.abs(mfcc_data)) + 1e-8)
+        self.converted_frame = tk.Frame(self.main_frame, width=450, height=400, bg='grey')
+        self.converted_frame.grid(row=0,column=1,padx=50,pady=0)
 
-    # Use the imshow function to display the MFCC data
-    ax.imshow(mfcc_data, origin='lower', extent=[-1, 1, -1, 1], cmap='jet',interpolation='nearest')
-    canvas.draw()
+        size = (5,5)
+        self.fig1 = plt.figure(figsize=size)
+        self.ax1 = self.fig1.add_subplot(111)
 
-def calculate_difference():
-    mfcc1 = ax1.images[-1].get_array()
-    mfcc2 = ax2.images[-1].get_array()
+        self.fig2 = plt.figure(figsize=size)
+        self.ax2 = self.fig2.add_subplot(111)
 
-    difference = mfcc_difference(mfcc1,mfcc2)
+        self.target_canvas = FigureCanvasTkAgg(self.fig1, master=self.target_frame)
+        self.converted_canvas = FigureCanvasTkAgg(self.fig2, master=self.converted_frame)
 
+        self.target_canvas.draw()
+        self.converted_canvas.draw()
 
-root = Tk()
-root.title("SVC Evaluation Tool")
-root.config(bg='black')
+        self.target_canvas.get_tk_widget().pack()
+        self.converted_canvas.get_tk_widget().pack()
 
+        self.upload_target = tk.Button(self.target_frame, text="Upload Target Audio", 
+            command=lambda: self.upload_audio("target"))
+        self.upload_converted = tk.Button(self.converted_frame, text="Upload Converted Audio", 
+            command=lambda: self.upload_audio("converted"))
 
-main_frame = Frame(root, width=1000, height=400, bg='white')
-main_frame.grid(row=0, column=0, padx=20, pady=10)
+        self.upload_target.pack()
+        self.upload_converted.pack()
 
-target_frame = Frame(main_frame, width=450, height=400, bg='grey')
-target_frame.grid(row=0,column=0,padx=50,pady=0)
+        self.options_frame = tk.Frame(self.root, width=200, height=500, bg='white')
+        self.options_frame.grid(row=0, column=1, padx=20, pady=10)
 
-converted_frame = Frame(main_frame, width=450, height=400, bg='grey')
-converted_frame.grid(row=0,column=1,padx=50,pady=0)
+        self.calculate_difference_button = tk.Button(self.options_frame, text="Calculate Euclidean difference", command=self.calculate_difference)
+        self.calculate_difference_button.pack()
 
-size = (5,5)
-fig1 = plt.figure(figsize=size)
-ax1 = fig1.add_subplot(111)
+    def upload_audio(self, button):
+        file_path = filedialog.askopenfilename(filetypes=[("WAV file", ".wav")])
+        if not file_path:
+            return
+        try:
+            mfcc_data = MFCC(file_path).calculate()
+        except:
+            tk.messagebox.showerror("Error", "Couldn't open/find the file")
+            return
+        if button == "target":
+            ax = self.ax1
+            canvas = self.target_canvas
+        else:
+            ax = self.ax2
+            canvas = self.converted_canvas
+        ax.imshow(mfcc_data, origin='lower', extent=[-1, 1, -1, 1], cmap='jet',interpolation='nearest')
+        canvas.draw()
+        
+    def calculate_difference(self):
+        try:
+            mfcc1 = self.ax1.images[-1].get_array()
+            mfcc2 = self.ax2.images[-1].get_array()
+        except:
+            tk.messagebox.showerror("Error", "Please upload target and converted audio first")
+            return
+        difference = mfcc_difference(mfcc1,mfcc2)
 
-fig2 = plt.figure(figsize=size)
-ax2 = fig2.add_subplot(111)
-
-target_canvas = FigureCanvasTkAgg(fig1, master=target_frame)
-converted_canvas = FigureCanvasTkAgg(fig2, master=converted_frame)
-
-target_canvas.draw()
-converted_canvas.draw()
-
-target_canvas.get_tk_widget().pack()
-converted_canvas.get_tk_widget().pack()
-
-upload_target = Button(target_frame, text="Upload Target Audio", command=lambda: upload_audio(target_canvas, ax1))
-upload_converted = Button(converted_frame, text="Upload Converted Audio", command=lambda: upload_audio(converted_canvas, ax2))
-
-upload_target.pack()
-upload_converted.pack()
-
-options_frame = Frame(root, width=200, height=500, bg='white')
-options_frame.grid(row=0, column=1, padx=20, pady=10)
-
-calculate_difference_button = Button(options_frame, text="Calculate Euclidean difference", command=calculate_difference)
-calculate_difference_button.pack()
-
-root.mainloop()
+if __name__=="__main__":
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()
